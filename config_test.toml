@@ -1,0 +1,9 @@
+# Конфигурация для тестового режима (этап 3).
+# Вместо URL реального репозитория указывается путь к файлу описания графа,
+# где пакеты названы большими латинскими буквами.
+
+package_name = "A"
+repo_url     = "tests/fixtures/simple_graph.txt"
+repo_mode    = "file"
+output_image = "graph_test.png"
+max_depth    = 3
