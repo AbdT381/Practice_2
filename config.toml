@@ -1,0 +1,8 @@
+# Конфигурация для работы с реальным Maven-репозиторием.
+# Используется на этапах 1 и 2 (и на этапе 3 в режиме url).
+
+package_name = "org.apache.commons:commons-lang3"
+repo_url     = "https://repo1.maven.org/maven2"
+repo_mode    = "url"
+output_image = "graph.png"
+max_depth    = 2
