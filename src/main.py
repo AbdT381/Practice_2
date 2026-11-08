@@ -1,89 +1,138 @@
-import os
+"""CLI-точка входа (этапы 1–3)."""
+from __future__ import annotations
+
+import argparse
 import sys
-from urllib.parse import urlparse
 
-# Используем tomllib (Python 3.11+)
-try:
-    import tomllib
-except ImportError:
-    print("Ошибка: Для работы скрипта требуется Python 3.11 или выше (модуль tomllib).")
-    sys.exit(1)
+from .config import Config, ConfigError, load_config, print_config
+from .graph import DependencyGraph, GraphError
+from .maven_parser import (
+    MavenParseError,
+    fetch_direct_dependencies,
+    load_test_repository,
+)
 
-CONFIG_FILE = "config.toml"
 
-def validate_config(config: dict) -> dict:
-    """Валидирует параметры конфигурации и выбрасывает ValueError при ошибках."""
-    errors = []
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Граф зависимостей Maven-пакетов (этапы 1–3)"
+    )
+    parser.add_argument(
+        "--config", required=True, help="Путь к TOML-конфигурации"
+    )
+    parser.add_argument(
+        "--stage",
+        choices=["1", "2", "3"],
+        default="3",
+        help="Какой этап продемонстрировать (по умолчанию 3)",
+    )
+    return parser.parse_args()
 
-    # 1. Проверка package_name
-    package_name = config.get("package_name")
-    if not package_name or not isinstance(package_name, str):
-        errors.append("Ошибка: 'package_name' должен быть непустой строкой.")
 
-    # 2. Проверка repo_url
-    repo_url = config.get("repo_url")
-    if not repo_url or not isinstance(repo_url, str):
-        errors.append("Ошибка: 'repo_url' должен быть строкой (URL или путь к файлу).")
+def _build_graph_from_url(cfg: Config) -> DependencyGraph:
+    """Этап 3: BFS по зависимостям с ограничением глубины."""
+    graph = DependencyGraph()
+    graph.add_edge(cfg.package_name, "")  # регистрируем корень
+    graph = DependencyGraph()
+    graph._edges.setdefault(cfg.package_name, [])  # noqa: SLF001
+    queue: list[tuple[str, int]] = [(cfg.package_name, 0)]
+    seen: set[str] = set()
+    while queue:
+        artifact, depth = queue.pop(0)
+        if artifact in seen or depth >= cfg.max_depth:
+            continue
+        seen.add(artifact)
+        try:
+            deps = fetch_direct_dependencies(artifact, cfg.repo_url)
+        except MavenParseError as exc:
+            print(f"⚠ Не удалось получить зависимости {artifact}: {exc}")
+            continue
+        for dep in deps:
+            graph.add_edge(artifact, dep)
+            queue.append((dep, depth + 1))
+    return graph
+
+
+def _build_graph_from_file(cfg: Config) -> DependencyGraph:
+    mapping = load_test_repository(cfg.repo_url)
+    graph = DependencyGraph()
+    graph.build_from_mapping(mapping)
+    return graph
+
+
+def _print_stage1(cfg: Config) -> None:
+    print("=== Этап 1: конфигурация ===")
+    print_config(cfg)
+    print()
+
+
+def _print_stage2(cfg: Config) -> None:
+    print("=== Этап 2: прямые зависимости ===")
+    if cfg.repo_mode != "url":
+        print("⚠ Этап 2 требует repo_mode = \"url\"")
+        return
+    try:
+        deps = fetch_direct_dependencies(cfg.package_name, cfg.repo_url)
+    except MavenParseError as exc:
+        print(f"✗ {exc}")
+        return
+    print(f"Прямые зависимости {cfg.package_name}:")
+    if not deps:
+        print("  (нет)")
+    for dep in deps:
+        print(f"  - {dep}")
+    print()
+
+
+def _print_stage3(cfg: Config, graph: DependencyGraph) -> None:
+    print("=== Этап 3: граф с транзитивностью ===")
+    reachable = graph.dfs_depth_limited(cfg.package_name, cfg.max_depth)
+    print(f"Достижимые узлы (max_depth = {cfg.max_depth}):")
+    for node, depth in sorted(reachable.items(), key=lambda kv: (kv[1], kv[0])):
+        print(f"  [{depth}] {node}")
+
+    print(f"\nВсего рёбер: {len(graph.edges())}")
+    for src, dst in graph.edges():
+        print(f"  {src} -> {dst}")
+
+    if graph.has_cycle():
+        print("\n⚠ В графе обнаружены циклы:")
+        for cyc in graph.find_cycles():
+            print("  " + " -> ".join(cyc))
     else:
-        # Проверяем, является ли это валидным URL или существующим локальным путем
-        parsed_url = urlparse(repo_url)
-        is_url = all([parsed_url.scheme, parsed_url.netloc])
-        is_path = os.path.exists(repo_url)
-        if not (is_url or is_path):
-            errors.append(f"Предупреждение/Ошибка: 'repo_url' ('{repo_url}') не является валидным URL или существующим локальным путем.")
+        print("\n✓ Циклов нет")
+    print()
 
-    # 3. Проверка mode
-    mode = config.get("mode")
-    valid_modes = ["git", "local", "zip"]
-    if mode not in valid_modes:
-        errors.append(f"Ошибка: 'mode' должен быть одним из следующих значений: {valid_modes}.")
 
-    # 4. Проверка output_image
-    output_image = config.get("output_image")
-    if not output_image or not isinstance(output_image, str):
-        errors.append("Ошибка: 'output_image' должен быть строкой (имя файла).")
-    elif not output_image.endswith(('.png', '.jpg', '.jpeg', '.svg')):
-        errors.append("Ошибка: 'output_image' должен иметь расширение графического формата (png, jpg, svg).")
-
-    # 5. Проверка max_depth
-    max_depth = config.get("max_depth")
-    if max_depth is None or not isinstance(max_depth, int) or max_depth < 0:
-        errors.append("Ошибка: 'max_depth' должен быть неотрицательным целым числом (>= 0).")
-
-    if errors:
-        raise ValueError("\n".join(errors))
-    
-    return config
-
-def main():
-    # Проверка наличия файла конфигурации
-    if not os.path.exists(CONFIG_FILE):
-        print(f"Ошибка: Файл конфигурации '{CONFIG_FILE}' не найден в текущей директории.")
-        sys.exit(1)
-
-    # Чтение и парсинг TOML
+def main() -> int:
+    args = _parse_args()
     try:
-        with open(CONFIG_FILE, "rb") as f:
-            config_data = tomllib.load(f)
-    except tomllib.TOMLDecodeError as e:
-        print(f"Ошибка синтаксиса TOML в файле '{CONFIG_FILE}': {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Непредвиденная ошибка при чтению файла конфигурации: {e}")
-        sys.exit(1)
+        cfg = load_config(args.config)
+    except ConfigError as exc:
+        print(f"✗ Ошибка конфигурации: {exc}", file=sys.stderr)
+        return 1
 
-    # Валидация параметров
-    try:
-        validated_config = validate_config(config_data)
-    except ValueError as e:
-        print("Ошибка валидации конфигурации:")
-        print(e)
-        sys.exit(1)
+    # Этап 1 всегда: вывод конфигурации
+    _print_stage1(cfg)
 
-    # Вывод параметров в формате ключ-значение
-    print("=== Успешно загруженная конфигурация прототипа ===")
-    for key, value in validated_config.items():
-        print(f"{key}: {value}")
+    # Этап 2
+    if args.stage in {"2", "3"}:
+        _print_stage2(cfg)
+
+    # Этап 3
+    if args.stage == "3":
+        try:
+            if cfg.repo_mode == "file":
+                graph = _build_graph_from_file(cfg)
+            else:
+                graph = _build_graph_from_url(cfg)
+        except (MavenParseError, GraphError, OSError) as exc:
+            print(f"✗ Ошибка построения графа: {exc}", file=sys.stderr)
+            return 2
+        _print_stage3(cfg, graph)
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
