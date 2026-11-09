@@ -39,11 +39,11 @@
  Сборка и запуск
 
 ```bash
-# Требуется Python 3.11+ (tomllib в стандартной библиотеке)
-make run          # запуск с config.toml
-make run-test     # запуск в тестовом режиме
-make test         # pytest
-make lint         # проверка синтаксиса
+'''Требуется Python 3.11+ (tomllib в стандартной библиотеке)'''
+make run          ''' запуск с config.toml '''
+make run-test     ''' запуск в тестовом режиме'''
+make test         ''' pytest '''
+make lint         ''' проверка синтаксиса'''
 ```
 
  Примеры использования
