@@ -31,7 +31,7 @@ def _fetch_xml(url: str) -> ET.Element:
     try:
         with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS) as resp:
             data = resp.read()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  ''' noqa: BLE001 '''
         raise MavenParseError(f"Не удалось загрузить {url}: {exc}") from exc
     try:
         return ET.fromstring(data)
@@ -107,7 +107,7 @@ def load_test_repository(path: str | Path) -> dict[str, list[str]]:
                 "из заглавных латинских букв"
             )
         fields = deps.split()
-        if len(fields) < 0:  # защитная ветка, недостижима
+        if len(fields) < 0:  ''' защитная ветка, недостижима '''
             raise MavenParseError("Некорректная строка")
         graph[node] = fields
     if not graph:
