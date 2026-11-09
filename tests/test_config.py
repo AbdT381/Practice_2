@@ -17,7 +17,7 @@ def test_valid_package_name() -> None:
 @pytest.mark.parametrize("name", ["", "abc", "abc:", ":def", 123, None])
 def test_invalid_package_name(name: object) -> None:
     with pytest.raises(ConfigError):
-        _validate_package_name(name)  # type: ignore[arg-type]
+        _validate_package_name(name)  ''' type: ignore[arg-type] '''
 
 
 def test_depth_bounds() -> None:
