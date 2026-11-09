@@ -36,9 +36,9 @@ class DependencyGraph:
             for dep in deps:
                 self.add_edge(node, dep)
 
-    # ------------------------------------------------------------------
-    # Этап 3: DFS без рекурсии, ограничение глубины, циклы
-    # ------------------------------------------------------------------
+    '''
+    Этап 3: DFS без рекурсии, ограничение глубины, циклы
+    '''
     def dfs_depth_limited(
         self, start: str, max_depth: int
     ) -> dict[str, int]:
@@ -106,12 +106,12 @@ class DependencyGraph:
                         cycles.append(path + [start])
                     elif nxt not in path:
                         stack.append((nxt, path + [nxt]))
-        # нормализуем: оставляем уникальные циклы
+        ''' нормализуем: оставляем уникальные циклы '''
         unique: list[list[str]] = []
         seen: set[tuple[str, ...]] = set()
         for cyc in cycles:
             body = cyc[:-1]
-            # каноническая форма — минимальный поворот
+            ''' каноническая форма — минимальный поворот '''
             rotations = [
                 tuple(body[i:] + body[:i]) for i in range(len(body))
             ]
