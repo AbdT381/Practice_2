@@ -112,14 +112,14 @@ def main() -> int:
         print(f"✗ Ошибка конфигурации: {exc}", file=sys.stderr)
         return 1
 
-    # Этап 1 всегда: вывод конфигурации
+    ''' Этап 1 всегда: вывод конфигурации '''
     _print_stage1(cfg)
 
-    # Этап 2
+    ''' Этап 2 '''
     if args.stage in {"2", "3"}:
         _print_stage2(cfg)
 
-    # Этап 3
+    ''' Этап 3 '''
     if args.stage == "3":
         try:
             if cfg.repo_mode == "file":
