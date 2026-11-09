@@ -43,7 +43,7 @@ def test_cycle_detection_false() -> None:
 def test_cycles_content() -> None:
     g = _build("tests/fixtures/simple_graph.txt")
     cycles = g.find_cycles()
-    # Ожидаем цикл A -> C -> E -> A (в каноническом виде начинается с A)
+    '''Ожидаем цикл A -> C -> E -> A (в каноническом виде начинается с A) '''
     assert any(set(c) >= {"A", "C", "E"} for c in cycles)
 
 
