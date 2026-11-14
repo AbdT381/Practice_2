@@ -23,18 +23,34 @@ class Config:
     max_depth: int
 
 
-def _validate_package_name(name: object) -> None:
+def _validate_package_name(name: object, mode: str) -> None:
+    """Проверить package_name с учётом режима работы.
+
+    - mode == "url":  ожидается groupId:artifactId (Maven-координат);
+    - mode == "file": ожидается имя узла тестового графа —
+                      только заглавные латинские буквы.
+    """
     if not isinstance(name, str) or not name:
         raise ConfigError("package_name должен быть непустой строкой")
-    if ":" not in name:
-        raise ConfigError(
-            "package_name должен иметь формат groupId:artifactId"
-        )
-    group, artifact = name.split(":", maxsplit=1)
-    if not group or not artifact:
-        raise ConfigError(
-            "package_name: groupId и artifactId не должны быть пустыми"
-        )
+
+    if mode == "url":
+        if ":" not in name:
+            raise ConfigError(
+                "package_name должен иметь формат groupId:artifactId"
+            )
+        group, artifact = name.split(":", maxsplit=1)
+        if not group or not artifact:
+            raise ConfigError(
+                "package_name: groupId и artifactId не должны быть пустыми"
+            )
+    elif mode == "file":
+        if not name.isalpha() or not name.isupper():
+            raise ConfigError(
+                "package_name в тестовом режиме должен состоять "
+                "из заглавных латинских букв"
+            )
+    else:
+        raise ConfigError(f"Неизвестный repo_mode: {mode}")
 
 
 def _validate_mode(mode: object) -> None:
@@ -99,8 +115,8 @@ def load_config(path: str | Path) -> Config:
         max_depth=raw["max_depth"],
     )
 
-    _validate_package_name(cfg.package_name)
     _validate_mode(cfg.repo_mode)
+    _validate_package_name(cfg.package_name, cfg.repo_mode)
     _validate_repo_url(cfg.repo_url, cfg.repo_mode)
     _validate_output_image(cfg.output_image)
     _validate_depth(cfg.max_depth)
