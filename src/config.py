@@ -43,7 +43,7 @@ def _validate_package_name(name: object, mode: str) -> None:
             raise ConfigError(
                 "package_name: groupId и artifactId не должны быть пустыми"
             )
-        elif mode == "file":
+    elif mode == "file":
         if not name.isascii() or not name.isalpha() or not name.isupper():
             raise ConfigError(
                 "package_name в тестовом режиме должен состоять "
