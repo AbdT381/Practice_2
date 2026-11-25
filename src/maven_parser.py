@@ -101,7 +101,7 @@ def load_test_repository(path: str | Path) -> dict[str, list[str]]:
             )
         node, _, deps = line.partition(":")
         node = node.strip()
-        if not node.isupper() or not node.isalpha():
+        if not node.isascii() or not node.isupper() or not node.isalpha():
             raise MavenParseError(
                 f"Строка {lineno}: имя пакета должно состоять "
                 "из заглавных латинских букв"
