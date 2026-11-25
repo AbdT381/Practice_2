@@ -26,7 +26,7 @@ def test_valid_package_name_url_mode() -> None:
 )
 def test_invalid_package_name_url_mode(name: object) -> None:
     with pytest.raises(ConfigError):
-        _validate_package_name(name, "url")  ''' type: ignore[arg-type] '''
+        _validate_package_name(name, "url")  
 
 
 ''' ---------- режим file: заглавные латинские буквы ---------- '''
