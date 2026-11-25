@@ -32,7 +32,7 @@ def _parse_args() -> argparse.Namespace:
 def _build_graph_from_url(cfg: Config) -> DependencyGraph:
     """Этап 3: BFS по зависимостям с ограничением глубины."""
     graph = DependencyGraph()
-    graph.add_edge(cfg.package_name, "")  ''' регистрируем корень '''
+    graph.add_edge(cfg.package_name, "") 
     graph = DependencyGraph()
     graph._edges.setdefault(cfg.package_name, [])  ''' noqa: SLF001 '''
     queue: list[tuple[str, int]] = [(cfg.package_name, 0)]
