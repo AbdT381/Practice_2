@@ -34,7 +34,7 @@ def _build_graph_from_url(cfg: Config) -> DependencyGraph:
     graph = DependencyGraph()
     graph.add_edge(cfg.package_name, "") 
     graph = DependencyGraph()
-    graph._edges.setdefault(cfg.package_name, [])  """ noqa: SLF001 """
+    graph._edges.setdefault(cfg.package_name, [])
     queue: list[tuple[str, int]] = [(cfg.package_name, 0)]
     seen: set[str] = set()
     while queue:
