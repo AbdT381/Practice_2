@@ -69,10 +69,19 @@ def _latest_version(repo_url: str, artifact: str) -> str:
         "/maven-metadata.xml"
     )
     meta = _fetch_xml(meta_url)
+    
+    # Пытаемся найти версию с namespace (как в pom.xml)
     version = (
         meta.findtext(f"{MAVEN_NS}versioning/{MAVEN_NS}release")
         or meta.findtext(f"{MAVEN_NS}versioning/{MAVEN_NS}latest")
     )
+    # Если не нашли — ищем без namespace (как в maven-metadata.xml)
+    if not version:
+        version = (
+            meta.findtext("versioning/release")
+            or meta.findtext("versioning/latest")
+        )
+        
     if not version:
         raise MavenParseError(f"Не найдена версия для {artifact}")
     return version
