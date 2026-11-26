@@ -1,0 +1,5 @@
+package_name = "A"
+repo_url     = "tests/fixtures/cyclic_graph.txt"
+repo_mode    = "file"
+output_image = "graph_test.png"
+max_depth    = 10
